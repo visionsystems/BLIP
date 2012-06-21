@@ -1,0 +1,11 @@
+* Compiler
+  * Memory handling, allocate/free memory
+  * Type system (also needed for memory system)
+  * Index constants with register, this requires storing constants in memory
+    depends on memory handling (we need to track free memory)
+  * Spilling of variables to memory, also depends on memory handling
+  * If ... else ... statements
+  * Handling of memory accesses out of block (generate mov out, mem[fds]; mov rx, left sequences)
+
+* Interpreter
+  * Change opcode encoding to tuples with integers (major work!) 

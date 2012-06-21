@@ -1,0 +1,98 @@
+
+* So now that we have a working VJ prototype, we can modify it to fit the block based architecture:
+ - in a first pass, we don't need the multiscale approach, 
+   otherwise the scaling of the filter should be considered
+   instead of the image scaling.
+
+* See roccc VJ implementation paper for info on VJ fixed point conversion/sqrt implementation
+
+* Since all cascade steps are executed for each pixel, maybe a variant on adaboost
+  can be used propagating the values of each step to the end result. 
+  See ACIVS 2010 handtracking paper for more info on this approach.
+
+
+* VJ flow
+ - Histogram equalisation (global)
+ - Generate integral/squared integral image
+ - Apply filter cascade for each position 
+
+
+* Simplifications for embedded use:
+ - Convert all parameters in opencv haar cascades to integer number, node.left/right and threshold are 0..1
+   so they can be converted to the range 0...65535 instead
+ - Keep as much of the data as possible into integer values (fixed point), even sqrt
+ - This trades off some accuracy with respect to the float/double implementation (duh)
+
+* Simplifications for first implementation iteration:
+ - No histogram stretching
+ - Floating point
+ - Each block calculates all values within the block range,
+   there is probably a better way to organize the work (lots of communication overhead at the borders)
+   but this is the easiest way to start...
+
+* Idle analysis results
+ - Result for blocksize 64,64 and image size 640x426
+      all_positions_rejected
+        1   1   1   1   1   1   1   1   1   1
+        0   0   0   0   0   1   0   1   1   1
+        1   0   1   0   1   1   0   1   1   0
+        1   1   0   1   1   1   1   0   1   1
+        1   1   1   1   1   1   1   1   1   1
+        1   1   1   1   1   1   1   1   1   1
+      pe_idle
+       22  22  22  22  22  22  22  22  22  22
+       -1  -1  -1  -1  -1  -1  -1  -1  22  22
+       -1  -1  -1  -1  -1  -1  -1  -1  22  -1
+       22  -1  -1  -1  -1  22  -1  -1  -1  -1
+       22  22  -1  -1  22  22  22  -1  -1  22
+       22  22  22  22  22  22  22  22  22  22
+      It is logical that blocks only finish at the last stage
+      as all stages are executed sequential per pixel in each block.
+      So the only way to get the blocks to the idle faster is to calculate stages
+      for all pixels in a block. This requires an extra memory operation
+      to increment the reject counter
+
+
+
+* Todo:
+ - MORE TESTS!!! especially the simulator
+ - Optimize the simulator:
+    - Get rid of all the str(<Register object>) methods and work with integer ids [DONE]
+    - Parallize the simulator
+ - Consider adding more opcodes, especially for the Imm(precalculated address) MemR(rx, imm) pattern [DONE]
+    - Add MemR(rx, addr) and MemW(addr, rx) opcodes?    
+ - Once VJ is working, optimize asm code (store immediates inside hot loops inside registers)
+ - Based on the memory access profiling, consider caching certain integral image values in memory
+   The results show that the boundary values of the integral image are accessed the most. The rest of the
+   pixels have an equal access count because the detector is executed for each pixel in the block.
+   This is logical as each feature shape that goes outside the block needs the boundary value
+   to compute the part of the shape within the boundaries. The reasonable tradeoff here seems the caching
+   of the 4 corner values into registers as the are accessed 2x more then the other boundary values.
+ - Add some code to detect if a PE is idle, i.e. the PE and his 8-connected neighbours have an output buffer without zeroes
+   If this is the case some alternative code path could be executed on the idle PE's.
+   One application could be a simple motion detection (BBS) with start of loop token to synchronize joining PE's
+ - For some features, all the shapes lie within the same neighbouring block, it would be better to
+   calculate the whole feature inside the neighbouring block before moving the result to the original block
+   (less communication overhead vs more complicated codegen)
+ 
+
+* Implementation of variance normalisation [DONE]
+ - Generation of integral and sq_integral sums
+   A similar process should be used as split shapes to get the different areas from the original VJ window
+   Maybe split_filters can be generalised
+
+
+ - Normalisation calculation
+   Assume r1 = integral_sum and r2 = sq_integral_sum
+
+   Imm(haar_width*haar_height)
+   Mul(code.r(2), code.r(2), code.imm)     # r2 = sq_integral_sum*(haar_width*haar_height) 
+   Mul(code.r(1), code.r(1), code.r(1))    # r1 = integral_sum^2
+   Add(code.r(1), code.r(1), code.r(2))    # r1 = integral_sum^2 + sq_integral_sum*(haar_width*haar_height) 
+   Imm(0)
+   Cmp(code.r(1), code.imm)                # comp r1 - 0
+   Sqrt(code.r(1), code.r(1), cond='GT')   # r1 = sqrt(integral_sum^2 + sq_integral_sum*(haar_width*haar_height))
+   Imm(1, cond='LE')                       # if r1 <= 0: variance = 1
+   Mov(code.r(1), code.imm, cond='LE')     # if r1 <= 0: variance = 1
+   Inv(code.r(1), code.r(1), cond='GT')    # r1 = norm = 1/variance
+

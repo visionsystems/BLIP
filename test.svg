@@ -1,0 +1,24 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+
+<svg style="stroke-linejoin:round; stroke:black; stroke-width:0.2pt; text-anchor:middle; fill:none" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, FreeSans, Sans, sans, sans-serif" height="100%" width="100%" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 21 21">
+
+<g>
+    <path d='M20 0L20 20' />
+    <path d='M0 20L20 20' />
+    <path d='M16 0L16 20' />
+    <path d='M0 16L20 16' />
+    <path d='M12 0L12 20' />
+    <path d='M0 12L20 12' />
+    <path d='M8 0L8 20' />
+    <path d='M0 8L20 8' />
+    <path d='M4 0L4 20' />
+    <path d='M0 4L20 4' />
+    <path d='M0 0L0 20' />
+    <path d='M0 0L20 0' />
+    <path fill-opacity='50%' stroke='gray' fill='red' d='M1 1L4 1L4 4L1 4Z' />
+    <path fill-opacity='50%' stroke='gray' fill='red' d='M1 4L4 4L4 6L1 6Z' />
+    <path fill-opacity='50%' stroke='gray' fill='red' d='M4 1L6 1L6 4L4 4Z' />
+    <path fill-opacity='50%' stroke='gray' fill='red' d='M4 4L6 4L6 6L4 6Z' />
+</g></svg>
+
